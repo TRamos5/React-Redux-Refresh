@@ -3,8 +3,9 @@ import uuid from 'uuid'
 import axios from 'axios';
 
 import * as mutations from './mutations';
+import { history } from './history';
 
-const url = "http://localhost:8888";
+const url = process.env.NODE_ENV == `production` ? `` : "http://localhost:8888";
 
 export function* taskCreationSaga() {
     while (true) {
@@ -39,5 +40,27 @@ export function* taskModificationSage() {
                 isComplete: task.isComplete,
             }
         })
+    }
+}
+
+export function* userAuthenticationSage() {
+    while (true) {
+       const { username, password } = yield take(mutations.REQUEST_AUTHENTICATE_USER);
+        try {
+            const { data } = yield axios.post(url + `/authenticate`, {username, password});
+            if (!data) {
+                throw new Error();
+            }
+
+            console.log("authenticated", data);
+            yield put(mutations.setState(data.state));
+            yield put(mutations.processAuthenticateuser(mutations.AUTHENTICATED));
+
+            history.push('/dashboard');
+        } catch (e) {
+            console.log("Can't authenticate");
+            yield put (mutations.processAuthenticateuser(mutations.NOT_AUTHENTICATED));
+        }
+
     }
 }
